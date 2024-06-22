@@ -175,21 +175,30 @@ extension Node {
         return Node(internalNode: n, internalTree: internalTree)
     }
 
-    public func descendant(in pointRange: Range<Point>) -> Node? {
+    public func descendant(in pointRange: Range<Point>, isNamed: Bool = false) -> Node? {
         let lower = pointRange.lowerBound
         let upper = pointRange.upperBound
 
-        let n = ts_node_descendant_for_point_range(internalNode, lower.internalPoint, upper.internalPoint)
+        var f = ts_node_descendant_for_point_range
+        if isNamed {
+            f = ts_node_named_descendant_for_point_range
+        }
+
+        let n = f(internalNode, lower.internalPoint, upper.internalPoint)
 
         return Node(internalNode: n, internalTree: internalTree)
     }
 
-    public func descendant(in byteRange: Range<UInt32>) -> Node? {
+    public func descendant(in byteRange: Range<UInt32>, isNamed: Bool = false) -> Node? {
         let lower = byteRange.lowerBound
         let upper = byteRange.upperBound
 
-        let n = ts_node_descendant_for_byte_range(internalNode, lower, upper)
-        
+        var f = ts_node_descendant_for_byte_range
+        if isNamed {
+            f = ts_node_named_descendant_for_byte_range
+        }
+        let n = f(internalNode, lower, upper)
+
         return Node(internalNode: n, internalTree: internalTree)
     }
 }
