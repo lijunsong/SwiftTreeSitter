@@ -13,6 +13,11 @@ public struct LanguageData: Sendable {
 	}
 }
 
+enum LanguageConfigurationError: Error {
+	case queryDirectoryNotFound
+	case queryDirectoryNotReadable(URL)
+}
+
 /// A structure that holds a language parser, name, and its assoicated queries.
 public struct LanguageConfiguration: Sendable {
 	public let language: Language
@@ -39,7 +44,7 @@ public struct LanguageConfiguration: Sendable {
 
 #if !os(WASI)
 extension LanguageConfiguration {
-    public init(_ tsLanguage: UnsafePointer<TSLanguage>, name: String, queries: [Query.Definition: Query]) {
+	public init(_ tsLanguage: OpaquePointer, name: String, queries: [Query.Definition: Query]) {
         self.init(Language(tsLanguage), name: name, queries: queries)
     }
 
@@ -55,18 +60,27 @@ extension LanguageConfiguration {
     /// Create a configuration with a name assumed to match a bundle.
     ///
     /// The bundle must be nested within resources and follow the pattern `TreeSitter\(name)_TreeSitter\(name)`.
-	public init(_ tsLanguage: UnsafePointer<TSLanguage>, name: String) throws {
+	public init(_ tsLanguage: OpaquePointer, name: String) throws {
 		try self.init(Language(tsLanguage), name: name)
 	}
 
 	public init(_ language: Language, name: String, bundleName: String) throws {
-		let queriesURL = Self.bundleQueriesDirectoryURL(for: bundleName)
-		let queries = try queriesURL.flatMap { try Query.queries(for: language, in: $0) } ?? [:]
+		guard let queriesURL = Self.bundleQueriesDirectoryURL(for: bundleName) else {
+			throw LanguageConfigurationError.queryDirectoryNotFound
+		}
+
+		let path = queriesURL.standardizedFileURL.path
+
+		if FileManager.default.isReadableFile(atPath: path) == false {
+			throw LanguageConfigurationError.queryDirectoryNotReadable(queriesURL)
+		}
+
+		let queries = try Query.queries(for: language, in: queriesURL)
 
 		self.init(language, name: name, queries: queries)
 	}
 
-	public init(_ tsLanguage: UnsafePointer<TSLanguage>, name: String, bundleName: String) throws {
+	public init(_ tsLanguage: OpaquePointer, name: String, bundleName: String) throws {
 		try self.init(Language(tsLanguage), name: name, bundleName: bundleName)
 	}
 
@@ -76,7 +90,7 @@ extension LanguageConfiguration {
 		self.init(language, name: name, queries: queries)
 	}
 
-	public init(_ tsLanguage: UnsafePointer<TSLanguage>, name: String, queriesURL: URL) throws {
+	public init(_ tsLanguage: OpaquePointer, name: String, queriesURL: URL) throws {
 		try self.init(Language(tsLanguage), name: name, queriesURL: queriesURL)
 	}
 }

@@ -2,7 +2,7 @@ import Foundation
 
 import SwiftTreeSitter
 
-public enum LanguageLayerError: Error {
+public enum LanguageLayerError: Error, Hashable {
 	case noRootNode
 	case queryUnavailable(String, Query.Definition)
 }
@@ -229,13 +229,9 @@ extension LanguageLayer: Queryable {
 			throw LanguageLayerError.noRootNode
 		}
 
-		return LanguageLayerQueryCursor(
-			query: query,
-			tree: tree,
-			set: set,
-			depth: depth,
-			languageName: languageName
-		)
+		let target = LanguageLayerQueryCursor.Target(tree: tree, query: query, depth: depth, name: languageName)
+
+		return LanguageLayerQueryCursor(target: target, set: set)
 	}
 	
 	public func executeQuery(_ queryDef: Query.Definition, in set: IndexSet) throws -> LanguageTreeQueryCursor {

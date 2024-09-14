@@ -36,12 +36,19 @@ extension Parser {
         try setLanguage(language.tsLanguage)
     }
 
-    public func setLanguage(_ language: UnsafePointer<TSLanguage>) throws {
+    public func setLanguage(_ language: OpaquePointer) throws {
         let success = ts_parser_set_language(internalParser, language)
 
         if success == false {
             throw ParserError.languageFailure
         }
+    }
+
+    /// Resets the parser to begin at the beginning of the document.
+    ///
+    /// If the parser was cancelled or timed out, use this to reset it.
+    public func reset() {
+        ts_parser_reset(internalParser)
     }
 
 	/// The ranges this parser will operate on.
